@@ -4,66 +4,97 @@
 <meta charset="utf-8">
 <title>Pitch Keeper</title>
 <style>
-  :root { --bg:#232323; --fg:#d6d6d6; --muted:#8a8a8a; --accent:#2d8ceb; --ok:#4caf6a; --warn:#e0a030; --err:#e05050; --line:#3a3a3a; }
+  :root {
+    --font: "SF Pro Text", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+    --mono: "SF Mono", SFMono-Regular, Menlo, monospace;
+    --bg:#1e1e1e; --card:#262626; --field:#1a1a1a; --raise:#333; --line:#343434;
+    --fg:#d4d4d4; --strong:#f2f2f2; --muted:#8c8c8c; --dim:#6c6c6c;
+    --accent:#2EC4A6; --on-accent:#0d2b25; --tint:#123d35; --tint-fg:#5fe0c4;
+    --warn:#F5A524; --warn-tint:#3d2e0f; --err:#F06A6A; --err-tint:#3d1a1a;
+  }
   * { box-sizing:border-box; }
   html, body { height:auto; }
-  body { margin:0; padding:8px 10px 10px; background:var(--bg); color:var(--fg); font:12px/1.4 -apple-system, "Helvetica Neue", sans-serif; overflow-y:auto; }
+  body { margin:0; padding:10px; background:var(--bg); color:var(--fg); font:400 12px/1.5 var(--font); -webkit-font-smoothing:antialiased; overflow-y:auto; }
   [hidden] { display:none !important; }
+  b, strong { font-weight:700; }
 
-  .topbar { display:flex; align-items:center; gap:6px; margin-bottom:8px; }
-  .topbar h1 { flex:1; min-width:0; margin:0 0 0 4px; font-size:12px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .icon { position:relative; flex:none; width:24px; height:24px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; color:var(--muted); background:transparent; border:1px solid #4a4a4a; cursor:pointer; }
+  /* top bar */
+  .topbar { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+  .topbar h1 { flex:1; min-width:0; margin:0 0 0 2px; font-size:13px; font-weight:700; color:var(--strong); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .icon { position:relative; flex:none; width:24px; height:24px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; color:#aaa; background:#2a2a2a; border:0; cursor:pointer; }
   .icon svg { width:14px; height:14px; }
-  .icon:hover { color:var(--fg); background:#3a3a3a; }
-  .icon.active { color:#fff; background:var(--accent); border-color:var(--accent); }
-  .icon.alert::after { content:""; position:absolute; top:-1px; right:-1px; width:7px; height:7px; border-radius:50%; background:var(--err); }
+  .icon:hover { color:var(--strong); background:var(--raise); }
+  .icon.active { color:var(--on-accent); background:var(--accent); }
+  .icon.alert::after { content:""; position:absolute; top:0; right:0; width:7px; height:7px; border-radius:50%; background:var(--err); box-shadow:0 0 0 2px var(--bg); }
 
-  .switch { flex:none; display:inline-flex; align-items:center; gap:6px; cursor:pointer; user-select:none; }
+  .pill { display:inline-flex; align-items:center; gap:5px; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:600; white-space:nowrap; background:#2e2e2e; color:var(--muted); }
+  .pill::before { content:""; width:6px; height:6px; border-radius:50%; background:currentColor; }
+  .pill.on { background:var(--tint); color:var(--tint-fg); }
+  .pill.warn { background:var(--warn-tint); color:var(--warn); }
+  .switch { flex:none; display:inline-flex; align-items:center; gap:8px; cursor:pointer; user-select:none; }
   .switch input { position:absolute; opacity:0; pointer-events:none; }
-  .switch .track { width:30px; height:16px; border-radius:8px; background:#4a4a4a; position:relative; transition:background .15s; }
-  .switch .track::after { content:""; position:absolute; top:2px; left:2px; width:12px; height:12px; border-radius:50%; background:#ddd; transition:left .15s; }
-  .switch input:checked + .track { background:var(--ok); }
+  .switch .track { width:30px; height:16px; border-radius:8px; background:#444; position:relative; transition:background .15s; }
+  .switch .track::after { content:""; position:absolute; top:2px; left:2px; width:12px; height:12px; border-radius:50%; background:#fff; transition:left .15s; }
+  .switch input:checked + .track { background:var(--accent); }
   .switch input:checked + .track::after { left:16px; }
-  .switch input:disabled + .track { opacity:.5; }
-  #toggleText { width:24px; font-size:11px; font-weight:600; color:var(--muted); }
+  .switch input:disabled + .track { opacity:.45; }
 
-  fieldset { border:1px solid #3d5a7a; border-radius:4px; margin:0 0 8px; padding:6px 8px; }
-  legend { color:var(--muted); padding:0 4px; }
-  #seqName { color:var(--fg); }
-  .hint { color:var(--muted); font-size:11px; margin:2px 0 6px; }
-  #offNote { color:var(--muted); font-size:11px; padding:6px 2px 8px; }
-  .mrow { display:grid; grid-template-columns:minmax(0,1fr) 64px 64px; gap:6px; align-items:center; margin:3px 0; }
-  .mlabel { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .mrow input { width:100%; font-variant-numeric:tabular-nums; }
-  .mhint { color:var(--muted); font-size:11px; font-variant-numeric:tabular-nums; }
-  .sub { color:var(--muted); font-size:11px; margin:8px 0 4px; }
+  /* cards */
+  .card { background:var(--card); border-radius:8px; padding:10px 12px; margin:0 0 8px; }
+  .card-head { display:flex; align-items:baseline; justify-content:space-between; gap:8px; margin-bottom:8px; }
+  .label { font-size:11px; font-weight:600; color:var(--muted); white-space:nowrap; }
+  .meta { font-size:11px; color:var(--dim); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #offNote { color:var(--muted); }
+  .hint { color:var(--muted); font-size:11px; margin-top:6px; }
+  .hint.warn { color:var(--warn); }
+
+  /* Master stepper */
+  .stepper { display:flex; align-items:center; gap:8px; }
+  .step { width:26px; height:26px; flex:none; border:0; border-radius:6px; background:var(--raise); color:#ddd; font:600 15px/1 var(--font); cursor:pointer; }
+  .step:hover { background:#3d3d3d; color:#fff; }
+  #masterInput { width:64px; height:28px; padding:0 4px; text-align:center; background:transparent; color:#fff; border:1px solid transparent; border-radius:6px; font:700 18px var(--font); font-variant-numeric:tabular-nums; }
+  #masterInput:hover { border-color:var(--line); }
+  #masterInput:focus { outline:none; border-color:var(--accent); background:var(--field); }
+  #masterInput::placeholder { color:var(--dim); font-weight:400; font-size:13px; }
+  #masterInput.bad { border-color:var(--err); }
+  #masterHint { background:var(--tint); color:var(--tint-fg); }
+  #masterHint.none { background:#2e2e2e; color:var(--muted); }
+  #masterHint.bad { background:var(--err-tint); color:var(--err); }
+  #masterHint::before { display:none; }
+
+  /* VO track chips */
   .chips { display:flex; flex-wrap:wrap; gap:6px; }
-  .chip { display:inline-flex; align-items:center; gap:5px; margin:0; padding:3px 8px 3px 6px; border:1px solid var(--line); border-radius:12px; cursor:pointer; max-width:100%; }
+  .chip { position:relative; display:inline-flex; align-items:center; gap:4px; margin:0; padding:4px 12px; border-radius:14px; border:1px solid #3c3c3c; color:#9a9a9a; font-weight:400; cursor:pointer; max-width:100%; user-select:none; }
+  .chip:hover { border-color:#555; color:var(--fg); }
+  .chip input { position:absolute; opacity:0; pointer-events:none; }
   .chip span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .chip.on { border-color:var(--accent); background:rgba(45,140,235,.15); color:#fff; }
-  .chip input { margin:0; }
-  input[type=text] { background:#1b1b1b; color:var(--fg); border:1px solid var(--line); border-radius:3px; padding:3px 5px; }
-  input[type=text].bad { border-color:var(--err); }
+  .chip.on { background:var(--accent); border-color:var(--accent); color:var(--on-accent); font-weight:600; }
+  .chip.on::before { content:"✓"; font-weight:700; }
 
-  .drawer { border:1px solid var(--line); border-radius:4px; padding:6px 8px; margin:0 0 8px; }
-  .drawer h2 { font-size:12px; font-weight:600; margin:0 0 4px; }
-  #autoStatus { color:var(--muted); font-size:11px; margin-bottom:4px; }
-  label { display:block; margin:3px 0; }
-  label.inline input { width:56px; margin-left:4px; }
-  .row { display:flex; gap:6px; margin:6px 0; }
-  button.btn { flex:1; background:#3a3a3a; color:var(--fg); border:1px solid #4a4a4a; border-radius:3px; padding:6px 4px; cursor:pointer; font-size:12px; }
-  button.btn:hover { background:#444; }
-  button:disabled { opacity:.5; cursor:default; }
-  table { width:100%; border-collapse:collapse; }
-  th, td { text-align:left; padding:3px 4px; border-bottom:1px solid var(--line); vertical-align:top; }
-  th { color:var(--muted); font-weight:normal; }
+  /* drawers */
+  .drawer h2 { font-size:12px; font-weight:700; color:var(--strong); margin:0 0 6px; }
+  #autoStatus { color:var(--muted); font-size:11px; margin-bottom:6px; }
+  #autoStatus.warn { color:var(--warn); }
+  label { display:block; margin:4px 0; }
+  label.inline input { width:56px; margin-left:6px; }
+  input[type=text] { background:var(--field); color:var(--fg); border:1px solid var(--line); border-radius:6px; padding:3px 6px; font:400 12px var(--font); }
+  .row { display:flex; gap:6px; margin:8px 0; }
+  button.btn { flex:1; background:var(--raise); color:var(--fg); border:0; border-radius:6px; padding:6px 8px; cursor:pointer; font:600 12px var(--font); }
+  button.btn:hover { background:#3d3d3d; color:#fff; }
+  button:disabled { opacity:.45; cursor:default; }
+  .tablewrap { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:11px; }
+  th, td { text-align:left; padding:4px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { color:var(--muted); font-size:11px; font-weight:600; }
+  td:first-child { font-weight:600; color:var(--strong); }
   td.num { font-variant-numeric:tabular-nums; white-space:nowrap; }
-  #log { background:#1b1b1b; border:1px solid var(--line); border-radius:3px; padding:6px; max-height:360px; overflow:auto; font:11px/1.35 Menlo, monospace; white-space:pre-wrap; }
+  #log { background:var(--field); border-radius:6px; padding:8px; max-height:360px; overflow:auto; font:400 11px/1.45 var(--mono); white-space:pre-wrap; }
   #log:empty::before { content:"(trống)"; color:var(--muted); }
-  .note { border:1px solid var(--line); border-radius:4px; padding:6px 8px; margin:0 0 8px; font-size:11px; cursor:pointer; }
-  .note.ok { border-color:var(--ok); } .note.warn { border-color:var(--warn); }
-  .ver { color:var(--muted); font-size:11px; margin:2px 0; }
-  .ok { color:var(--ok); } .warn { color:var(--warn); } .err { color:var(--err); }
+  .note { border-radius:8px; padding:8px 12px; margin:0 0 8px; font-size:12px; font-weight:600; cursor:pointer; background:var(--card); }
+  .note.ok { background:var(--tint); color:var(--tint-fg); } .note.warn { background:var(--warn-tint); color:var(--warn); }
+  .ver { color:var(--muted); font-size:11px; }
+  .ver b { color:var(--strong); }
+  .ok { color:var(--tint-fg); } .warn { color:var(--warn); } .err { color:var(--err); }
 </style>
 </head>
 <body>
@@ -76,8 +107,8 @@
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><rect x="5" y="5" width="6" height="8" rx="3"/><path d="M6.2 5a1.8 1.8 0 0 1 3.6 0M8 8v5M2.5 7.5H5M11 7.5h2.5M2.8 11.5 5 10.5M13.2 11.5 11 10.5M3.2 3.8 5.2 5.6M12.8 3.8l-2 1.8"/></svg>
     </button>
     <h1>Pitch Keeper</h1>
-    <label class="switch" title="Bật/tắt tool cho project này">
-      <span id="toggleText">OFF</span>
+    <span id="toggleText" class="pill">Đã tắt</span>
+    <label class="switch" title="Bật/tắt tool cho sequence đang mở">
       <input type="checkbox" id="toggle">
       <span class="track"></span>
     </label>
@@ -85,19 +116,19 @@
 
   <div id="updateNote" class="note" hidden title="Bấm để ẩn"></div>
 
-  <section id="infoPanel" class="drawer" hidden>
+  <section id="infoPanel" class="drawer card" hidden>
     <h2>Information — clip đang chọn</h2>
     <div id="autoStatus">Đang khởi động…</div>
-    <table>
+    <div class="tablewrap"><table>
       <thead><tr><th>Clip</th><th>Speed</th><th>#1 / #2</th><th>F0 gốc → nghe được</th></tr></thead>
       <tbody id="rows"><tr><td colspan="4" style="color:var(--muted)">Chọn clip voice trên timeline.</td></tr></tbody>
-    </table>
+    </table></div>
     <div class="row"><button id="btnAnalyze" class="btn">Phân tích lại</button></div>
   </section>
 
-  <section id="debugPanel" class="drawer" hidden>
+  <section id="debugPanel" class="drawer card" hidden>
     <h2>Debug</h2>
-    <div class="ver"><span id="verText">Phiên bản …</span></div>
+    <div class="ver" id="verText">Phiên bản …</div>
     <div class="row">
       <button id="btnUpdate" class="btn">Kiểm tra cập nhật</button>
       <button id="btnRollback" class="btn" hidden>Quay về bản trước</button>
@@ -112,20 +143,24 @@
     <div id="log"></div>
   </section>
 
-  <div id="offNote">Tool đang OFF cho project này — bật công tắc để tự áp dụng Pitch Shifter.</div>
+  <div id="offNote" class="card">Tool đang tắt cho sequence này — bật công tắc để tự áp dụng Pitch Shifter.</div>
 
-  <fieldset id="masterBox" hidden>
-    <legend>Voice over — <span id="seqName">…</span></legend>
-    <div class="mrow">
-      <span class="mlabel">Master Pitch (mọi VO)</span>
-      <input type="text" id="masterInput" placeholder="trống" aria-label="Master Pitch">
-      <span class="mhint" id="masterHint">không đổi</span>
-    </div>
-    <div class="hint">Ratio 0.5 – 2.0 (vd 0.9). Để trống = không đổi pitch. Lớp #2 tự bù speed.</div>
-    <div class="sub">Track chứa VO</div>
-    <div id="trackList" class="chips"><span class="hint">Đang đọc sequence…</span></div>
-    <div id="noTrackHint" class="hint warn" hidden>Chưa chọn track VO — tool chưa xử lý clip nào.</div>
-  </fieldset>
+  <div id="masterBox" hidden>
+    <section class="card">
+      <div class="card-head"><span class="label">Master pitch · mọi VO</span></div>
+      <div class="stepper" title="Ratio 0.5 – 2.0 (vd 0.9). Để trống = không đổi pitch. Lớp #2 tự bù speed.">
+        <button id="masterDec" class="step" aria-label="Giảm 0.05">−</button>
+        <input type="text" id="masterInput" placeholder="trống" aria-label="Master Pitch">
+        <button id="masterInc" class="step" aria-label="Tăng 0.05">+</button>
+        <span class="pill" id="masterHint">không đổi</span>
+      </div>
+    </section>
+    <section class="card">
+      <div class="card-head"><span class="label">Track chứa VO</span><span class="meta" id="seqName">…</span></div>
+      <div id="trackList" class="chips"><span class="hint">Đang đọc sequence…</span></div>
+      <div id="noTrackHint" class="hint warn" hidden>Chưa chọn track VO — tool chưa xử lý clip nào.</div>
+    </section>
+  </div>
 </div>
 
   <script src="js/pitch.js"></script>

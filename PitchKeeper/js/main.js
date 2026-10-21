@@ -169,13 +169,13 @@
     function renderEnabled() {
         $("toggle").checked = state.enabled;
         $("toggle").disabled = state.busy || !state.ctxSeq;
-        $("toggleText").textContent = state.enabled ? "ON" : "OFF";
+        renderPill(state.enabled ? "on" : "off");
         $("masterBox").hidden = !state.enabled;
         $("offNote").hidden = state.enabled;
         $("offNote").textContent = state.ctxSeq
-            ? "Tool đang OFF cho sequence này — bật công tắc để tự áp dụng Pitch Shifter."
+            ? "Tool đang tắt cho sequence này — bật công tắc để tự áp dụng Pitch Shifter."
             : "Chưa mở sequence nào.";
-        if (!state.enabled) setAutoStatus(state.ctxSeq ? "Tool đang OFF cho sequence này." : "Chưa mở sequence nào.");
+        if (!state.enabled) setAutoStatus(state.ctxSeq ? "Tool đang tắt cho sequence này." : "Chưa mở sequence nào.");
         fitPanel();
     }
 
@@ -294,10 +294,11 @@
         return isFinite(v) && v >= MIN_RATIO && v <= MAX_RATIO ? v : NaN;
     }
 
-    function masterHint(v) {
-        if (v === null) return "không đổi";
-        if (isNaN(v)) return "0.5 – 2.0";
-        return fmtSemis(semis(v));
+    /** Semitone pill next to the Master value: gray when blank, red when out of range. */
+    function renderMasterHint(v) {
+        var el = $("masterHint");
+        el.textContent = v === null ? "không đổi" : isNaN(v) ? "0.5 – 2.0" : fmtSemis(semis(v));
+        el.className = "pill" + (v === null ? " none" : isNaN(v) ? " bad" : "");
     }
 
     /** One Master Pitch for every VO clip of the project (a project uses one narrator voice). */
@@ -306,7 +307,7 @@
         state.master = typeof v === "number" ? v : null;
         $("masterInput").value = state.master === null ? "" : String(state.master);
         $("masterInput").classList.remove("bad");
-        $("masterHint").textContent = masterHint(state.master);
+        renderMasterHint(state.master);
     }
 
     function voTracksKey() { return VOTRACKS_KEY_PREFIX + state.project + "." + state.sequenceId; }
@@ -441,6 +442,14 @@
         var el = $("autoStatus");
         el.textContent = text;
         el.className = cls || "";
+        if (state.enabled) renderPill(cls === "warn" ? "warn" : "on");
+    }
+
+    /** Status pill next to the ON/OFF switch. */
+    function renderPill(mode) {
+        var el = $("toggleText");
+        el.textContent = mode === "on" ? "Đang chạy" : mode === "warn" ? "Cần chú ý" : state.ctxSeq ? "Đã tắt" : "Chưa mở sequence";
+        el.className = "pill" + (mode === "on" ? " on" : mode === "warn" ? " warn" : "");
     }
 
     function autoTick() {
@@ -639,7 +648,7 @@
 
     $("masterInput").addEventListener("input", function () {
         var v = parseMaster($("masterInput").value);
-        $("masterHint").textContent = masterHint(v);
+        renderMasterHint(v);
         $("masterInput").classList.toggle("bad", isNaN(v) && v !== null);
     });
     $("masterInput").addEventListener("change", function () {
@@ -654,6 +663,19 @@
         log("Master Pitch VO = " + (v === null ? "trống" : fmtRatio(v) + " / " + fmtSemis(semis(v))), "ok");
         autoTick();
     });
+
+    /** − / + nudge the Master by 0.05 (a blank Master starts from 1.0). */
+    function stepMaster(delta) {
+        var v = parseMaster($("masterInput").value);
+        var base = v === null || isNaN(v) ? 1 : v;
+        var next = Math.min(MAX_RATIO, Math.max(MIN_RATIO, Math.round((base + delta) * 100) / 100));
+        $("masterInput").value = next.toFixed(2);
+        $("masterInput").classList.remove("bad");
+        renderMasterHint(next);
+        $("masterInput").dispatchEvent(new Event("change"));
+    }
+    $("masterDec").onclick = function () { stepMaster(-0.05); };
+    $("masterInc").onclick = function () { stepMaster(0.05); };
 
     SETTING_FIELDS.forEach(function (id) {
         $(id).addEventListener("change", function () { saveSettings(); startAuto(); });
@@ -675,7 +697,10 @@
     $("updateNote").onclick = function () { $("updateNote").hidden = true; fitPanel(); };
 
     function renderVersion() {
-        $("verText").textContent = "Phiên bản " + UP.localVersion();
+        var ver = document.createElement("b");
+        ver.textContent = UP.localVersion();
+        $("verText").textContent = "Phiên bản ";
+        $("verText").appendChild(ver);
         var prev = UP.backupVersion();
         $("btnRollback").hidden = !prev;
         if (prev) $("btnRollback").textContent = "Quay về bản " + prev;
