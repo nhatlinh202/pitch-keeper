@@ -1,0 +1,23 @@
+#!/bin/bash
+# Chạy (với quyền root) sau khi bộ cài .pkg chép payload vào /private/tmp/PitchKeeper-pkg.
+# Chuyển extension vào ~/Library của người đang đăng nhập để panel tự cập nhật được mà không cần mật khẩu.
+set -e
+
+PAYLOAD="/private/tmp/PitchKeeper-pkg/PitchKeeper"
+USER_NAME="$(/usr/bin/stat -f%Su /dev/console)"
+USER_HOME="$(/usr/bin/dscl . -read "/Users/$USER_NAME" NFSHomeDirectory | awk '{print $2}')"
+EXT_DIR="$USER_HOME/Library/Application Support/Adobe/CEP/extensions"
+DEST="$EXT_DIR/PitchKeeper"
+
+/usr/bin/sudo -u "$USER_NAME" /bin/mkdir -p "$EXT_DIR"
+/bin/rm -rf "$DEST"
+/usr/bin/ditto "$PAYLOAD" "$DEST"
+/usr/sbin/chown -R "$USER_NAME":staff "$DEST"
+/bin/rm -rf "/private/tmp/PitchKeeper-pkg"
+
+# Cho phép Premiere nạp extension chưa ký (cài đặt của người dùng, không phải của root)
+for v in 11 12 13; do
+    /usr/bin/sudo -u "$USER_NAME" /usr/bin/defaults write "com.adobe.CSXS.$v" PlayerDebugMode 1
+done
+
+exit 0
