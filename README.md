@@ -29,7 +29,7 @@ Sau khi cài: khởi động lại Premiere → **Window › Extensions › Pitc
 
 ### Cập nhật
 Không cần làm gì. Panel tự kiểm tra bản mới khi mở và mỗi 6 giờ, tải về, kiểm tra sha256 rồi tự tải lại.
-Nút con bọ có **Kiểm tra cập nhật** và **Quay về bản trước**. Cài đặt của bạn (Master, track VO, ON/OFF) được giữ nguyên.
+Nút con bọ có **Kiểm tra cập nhật**. Cài đặt của bạn (Master, track VO, ON/OFF) được giữ nguyên.
 
 ## Sử dụng
 

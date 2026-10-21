@@ -701,9 +701,6 @@
         ver.textContent = UP.localVersion();
         $("verText").textContent = "Phiên bản ";
         $("verText").appendChild(ver);
-        var prev = UP.backupVersion();
-        $("btnRollback").hidden = !prev;
-        if (prev) $("btnRollback").textContent = "Quay về bản " + prev;
     }
 
     /** Auto checks stay quiet when offline; a manual check reports everything. */
@@ -727,15 +724,9 @@
 
     if (UP) {
         $("btnUpdate").onclick = function () { runUpdate(true); };
-        $("btnRollback").onclick = function () {
-            UP.rollback().then(function (r) {
-                if (r.restart) showNote("Đã quay về bản " + r.to + " — khởi động lại Premiere để hoàn tất.", "warn");
-            }).catch(function (e) { log(e.message, "err"); });
-        };
         var just = UP.takeJustUpdated();
         if (just) {
-            var msg = (just.status === "rolledback" ? "Đã quay về bản " : "Đã cập nhật lên bản ") + just.to +
-                (just.notes && just.status !== "rolledback" ? " — " + just.notes : "");
+            var msg = "Đã cập nhật lên bản " + just.to + (just.notes ? " — " + just.notes : "");
             log(msg, "ok");
             showNote(just.restart ? msg + ". Khởi động lại Premiere để hoàn tất." : msg, just.restart ? "warn" : "ok");
         }

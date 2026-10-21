@@ -1,7 +1,7 @@
 /*
  * Pitch Keeper — self-updater (runs in the CEP panel, Node.js enabled).
  * Reads version.json from the latest GitHub Release, downloads the zip, checks its sha256,
- * swaps it in place of the installed extension folder (the previous version is kept for rollback),
+ * swaps it in place of the installed extension folder (the old version is deleted once the swap succeeds),
  * then reloads the panel and re-evaluates host.jsx so no Premiere restart is needed.
  */
 (function (root) {
@@ -20,9 +20,9 @@
     var https = nodeRequire("https"), crypto = nodeRequire("crypto"), cp = nodeRequire("child_process");
 
     function extensionDir() { return path.dirname(decodeURIComponent(location.pathname)); }
-    // Outside the CEP extensions folder, so Premiere never loads the backup as a second copy.
+    // Outside the CEP extensions folder, so Premiere never loads the replaced version as a second copy.
     function supportDir() { return path.join(os.homedir(), "Library", "Application Support", "PitchKeeper"); }
-    function backupDir() { return path.join(supportDir(), "previous"); }
+    function oldDir() { return path.join(supportDir(), "previous"); }
     function stagingDir() { return path.join(supportDir(), "staging"); }
 
     function readVersion(dir) {
@@ -128,7 +128,8 @@
             if (!fs.existsSync(path.join(fresh, "CSXS", "manifest.xml"))) throw new Error("Gói cập nhật không đúng cấu trúc.");
             if (readVersion(fresh) !== info.version) throw new Error("Gói cập nhật không khớp phiên bản " + info.version + ".");
             var restart = !sameManifest(ext, fresh);
-            swap(ext, fresh, backupDir());
+            swap(ext, fresh, oldDir());
+            rmrf(oldDir());
             rmrf(stagingDir());
             rmrf(zipPath);
             return { from: from, to: info.version, notes: info.notes || "", restart: restart };
@@ -169,25 +170,6 @@
         });
     }
 
-    function hasBackup() { return fs.existsSync(path.join(backupDir(), "CSXS", "manifest.xml")); }
-    function backupVersion() { return hasBackup() ? readVersion(backupDir()) : null; }
-
-    /** Swap the installed version with the kept previous version. */
-    function rollback() {
-        if (!hasBackup()) return Promise.reject(new Error("Không có bản trước để quay về."));
-        return waitIdle().then(function () {
-            var ext = extensionDir(), from = localVersion(), to = backupVersion();
-            var tmp = path.join(supportDir(), "swap");
-            rmrf(tmp);
-            fs.renameSync(backupDir(), tmp);
-            var restart = !sameManifest(ext, tmp);
-            swap(ext, tmp, backupDir());
-            var result = { status: "rolledback", from: from, to: to, notes: "Quay về bản trước", restart: restart };
-            activate(result);
-            return result;
-        });
-    }
-
     /** One-shot message left by the previous panel instance after an update. */
     function takeJustUpdated() {
         try {
@@ -199,9 +181,7 @@
 
     root.PitchKeeperUpdater = {
         localVersion: localVersion,
-        backupVersion: backupVersion,
         checkAndUpdate: checkAndUpdate,
-        rollback: rollback,
         takeJustUpdated: takeJustUpdated,
         compareVersions: compareVersions
     };
